@@ -20,6 +20,7 @@ doc/
 doxygen/html
 doxygen/latex
 test-reports/
+javadoc
 
 # We don't want any unnecessary eclipse/idea shit on git! #
 .settings/

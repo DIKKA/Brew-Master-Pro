@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<project default="build">
+    <!--<property name="src" value="../src/ch/ffhs/dikka/brewmaster/examples"/> -->
+    <property name="base.dir" value="."/>
+    <property name="src.dir" value="src"/>
+    <property name="test.dir" value="test"/>
+    <property name="test.report.dir" value="test-reports"/>
+    <property name="lib.dir" value="lib"/>
+    <property name="dist.dir" value="dist"/>
+    <property name="doc.dir" value="javadoc"/>
+    <property name="build.dir" value="build"/>
+    <property name="classes.dir" value="classes"/>
+    <property name="db.test.file" value="${user.home}/.brew-master-pro/brew-master-pro.test.sqlite"/>
+    <property name="db.schema.file" value="resources/db-schema.sql"/>
+    <property name="db.masterdata.file" value="resources/master-data.sql"/>
+
+    <property name="db.test.initialdata.file" value="test/initial-test-data.sql"/>
+    <property name="jar.name" value="brewmasterpro.jar"/>
+    <property name="version.num" value="0.1"/>
+    <!--<buildnumber value="${date}"/>-->
+    <property name="main.class" value="ch.ffhs.dikka.brewmaster.BrewMasterPro"/>
+    <property name="lib.sqlite" value="${lib.dir}/sqlite-jdbc-3.7.2.jar"/>
+    <property name="lib.junit" value="${lib.dir}/junit.jar"/>
+
+    <tstamp>
+        <format property="TODAY" pattern="yyyy-MM-dd HH:mm:ss" />
+    </tstamp>
+
+    <!--
+        Perform initialization of the build process,
+        this entails creating some directories.
+    -->
+    <target name="init">
+        <mkdir dir="${build.dir}" />
+        <mkdir dir="${build.dir}/${classes.dir}" />
+        <mkdir dir="${doc.dir}" />
+        <mkdir dir="${dist.dir}" />
+        <mkdir dir="${dist.dir}/lib"/>
+        <mkdir dir="${test.report.dir}" />
+    </target>
+
+    <!-- create a property containing all .jar files, prefix lib/, and seperated with a space -->
+    <pathconvert property="libs.project" pathsep=" ">
+        <mapper>
+            <chainedmapper>
+
+                <!-- remove absolute path -->
+                <flattenmapper />
+
+                <!-- add lib/ prefix -->
+                <globmapper from="*" to="lib/*" />
+            </chainedmapper>
+        </mapper>
+
+        <path>
+            <!-- lib.dir contains all jar files, in several subdirectories -->
+            <fileset dir="${lib.dir}">
+                <include name="**/*.jar" />
+            </fileset>
+        </path>
+    </pathconvert>
+
+    <target name="compile" depends="init" >
+        <javac srcdir="${src.dir}" destdir="${build.dir}/${classes.dir}" includeantruntime="false">
+            <classpath>
+                <!--<path id="application" location="${jar.dir}/${ant.project.name}.jar"/>-->
+                <path id="junit" location="${lib.sqlite}"/>
+            </classpath>
+            <compilerarg value="-Xlint" />
+        </javac>
+        <javac srcdir="${test.dir}" destdir="${build.dir}/${classes.dir}" includeantruntime="false">
+            <classpath>
+                <path id="junit" location="${lib.junit}"/>
+            </classpath>
+            <compilerarg value="-Xlint" />
+        </javac>
+    </target>
+
+    <target name="jar" depends="compile">
+        <delete file="MANIFEST.MF"/>
+        <copy file="${lib.sqlite}" todir="${dist.dir}/lib"/>
+        <jar jarfile="${dist.dir}/${jar.name}"
+             basedir="${build.dir}/${classes.dir}"
+             includes="**/*.class" >
+            <manifest>
+                <attribute name="Built-By" value="${user.name}"/>
+                <attribute name="Main-Class" value="${main.class}"/>
+                <attribute name="Class-Path" value="${libs.project}"/>
+                <attribute name="Implementation-Version"
+                           value="${version.num}"/>
+                <!--value="${version.num}-b${build.number}"/>-->
+                <attribute name="Built-Date" value="${TODAY}"/>
+            </manifest>
+
+            <!-- All Resources -->
+            <fileset dir="${base.dir}">
+                <include name="resources/**" />
+            </fileset>
+        </jar>
+        <echo level="info">To run this application from the command line, try:</echo>
+        <echo level="info">java -jar "${jar.name}"</echo>
+    </target>
+
+    <target name="dist" depends="build">
+        <copy todir="${dist.dir}">
+            <fileset dir="." includes="INSTALL FAQ README LICENSE"/>
+            <fileset dir="resources" includes="brewmaster.sh brewmaster.bat"/>
+        </copy>
+        <chmod perm="ug+rwx" type="file">
+            <fileset dir="${dist.dir}">
+                <include name="*.sh"/>
+                <include name="*.bat"/>
+            </fileset>
+        </chmod>
+    </target>
+
+    <target name="javadoc" depends="init">
+        <javadoc
+                sourcepath="${src.dir}"
+                destdir="${doc.dir}"
+                classpath="${lib.sqlite}"
+                packagenames="ch.*"
+                author="true"
+                protected="true"
+                version="true"
+                use="true"
+                splitindex="true"
+                failonerror="True"
+                linksource="True"/>
+    </target>
+
+    <target name="init-test-db" depends="init">
+        <delete file="${db.test.file}"/>
+        <exec executable="sqlite3" inputstring=".read ${db.test.initialdata.file}">
+            <arg value="-init"/>
+            <arg value="${db.schema.file}"/>
+            <arg value="${db.test.file}"/>
+        </exec>
+        <!--<exec executable="sqlite3" inputstring="">-->
+            <!--<arg value="-init"/>-->
+            <!--<arg value="${db.test.initialdata.file}"/>-->
+            <!--<arg value="${db.test.file}"/>-->
+        <!--</exec>-->
+    </target>
+
+    <target name="forcetest" depends="init,init-test-db,compile,jar">
+        <junit printsummary="yes" fork="yes" haltonfailure="no" haltonerror="no" showoutput="true">
+            <formatter type="plain"/>
+            <classpath>
+                <pathelement path="${build.dir}"/>
+                <path id="junit" location="${lib.junit}"/>
+                <!-- CHECK: I have no idea, if this is the right way, but to me it seems good
+            to use the jar-file as binary representation instead of the compile-units to
+            have a production-like setup -->
+                <path id="distjar" location="${dist.dir}/${jar.name}"/>
+            </classpath>
+            <batchtest fork="true" todir="${test.report.dir}" >
+                <fileset dir="${test.dir}">
+                    <include name="**/*Test.*" />
+                </fileset>
+            </batchtest>
+            <!--<test name="ch.ffhs.dikka.brewmaster.mapper.BrewingJournalMapperTest"/>-->
+        </junit>
+    </target>
+
+    <target name="test" depends="init,init-test-db,compile,jar">
+        <junit printsummary="yes" fork="yes" haltonfailure="no" haltonerror="yes"  showoutput="true">
+            <formatter type="xml"/>
+            <classpath>
+                <pathelement path="${build.dir}"/>
+                <path id="junit" location="${lib.junit}"/>
+                <!-- CHECK: I have no idea, if this is the right way, but to me it seems good
+            to use the jar-file as binary representation instead of the compile-units to
+            have a production-like setup -->
+                <path id="distjar" location="${dist.dir}/${jar.name}"/>
+            </classpath>
+            <batchtest fork="true" todir="${test.report.dir}" >
+                <fileset dir="${test.dir}">
+                    <include name="**/*Test.*" />
+                </fileset>
+            </batchtest>
+        </junit>
+    </target>
+
+    <target name="clean">
+        <delete>
+            <fileset file="MANIFEST.MF"/>
+        </delete>
+        <delete dir="${dist.dir}"/>
+        <delete dir="${build.dir}"/>
+        <delete dir="${doc.dir}"/>
+    </target>
+
+    <target name="build" depends="jar,test,javadoc" />
+
+</project>
