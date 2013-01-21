@@ -1,0 +1,8 @@
+INSERT INTO barrel_type VALUES(NULL, 'Holzfass (Eiche)');
+INSERT INTO barrel_type VALUES(NULL, 'Super-Druckfass');
+INSERT INTO barrel_type VALUES(NULL, 'Gummifass');
+
+INSERT INTO event_type VALUES(NULL, 'Maischen');
+INSERT INTO event_type VALUES(NULL, 'Zuschauen beim Gären');
+INSERT INTO event_type VALUES(NULL, 'Versammlung');
+INSERT INTO event_type VALUES(NULL, 'Degustation');

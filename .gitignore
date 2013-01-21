@@ -1,0 +1,43 @@
+*.class
+.~lock*
+\#*
+\.\#*
+.DS_Store
+*~
+~\$
+*.swp
+
+# Package Files #
+*.war
+*.ear
+# Class files (?) #
+*.class
+
+#build/dist/doc directories
+build/
+dist/
+doc/
+doxygen/html
+doxygen/latex
+test-reports/
+
+# We don't want any unnecessary eclipse/idea shit on git! #
+.settings/
+bin/
+out/
+.idea
+*.iml
+prj.el
+.classpath
+
+# Windows specific files #
+~$*
+desktop.ini
+
+#Netbeans related stuff
+build/classes/.netbeans_automatic_build
+nbproject/
+lib/CopyLibs/org-netbeans-modules-java-j2seproject-copylibstask.jar
+lib/nblibraries.properties
+manifest.mf
+/nbdist/
